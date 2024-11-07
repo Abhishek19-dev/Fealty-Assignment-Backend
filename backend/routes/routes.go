@@ -11,4 +11,5 @@ func RegisterStudentRoutes(router *mux.Router) {
     router.HandleFunc("/students/{id}", controllers.GetStudent).Methods("GET")
     router.HandleFunc("/students/{id}", controllers.UpdateStudent).Methods("PUT")
     router.HandleFunc("/students/{id}", controllers.DeleteStudent).Methods("DELETE")
+    router.HandleFunc("/students/{id}/summary", controllers.GenerateSummary).Methods("GET")
 }

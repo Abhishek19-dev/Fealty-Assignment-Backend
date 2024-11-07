@@ -1,6 +1,5 @@
-// src/App.js
 import React, { useState } from 'react';
-import { createStudent, deleteStudent, getAllStudents, getStudentById, updateStudent } from './Api/Api';
+import { createStudent, deleteStudent, getAllStudents, getStudentById, getStudentSummary, updateStudent } from './Api/Api';
 
 function App() {
   const [students, setStudents] = useState([]);
@@ -10,6 +9,10 @@ function App() {
   const [updateStudentData, setUpdateStudentData] = useState({ Name: '', Age: '', Email: '' });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  const [studentSummary, setStudentSummary] = useState('');
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [summaryError, setSummaryError] = useState('');
 
   // Handlers for each API action
   const handleGetStudents = async () => {
@@ -27,7 +30,6 @@ function App() {
   const handleCreateStudent = async (e) => {
     e.preventDefault();
     try {
-      console.log("new student",newStudent)
       await createStudent(newStudent);
       setMessage('Student created successfully!');
       setError('');
@@ -78,137 +80,182 @@ function App() {
     }
   };
 
+  const handleGetSummary = async () => {
+    if (!studentId) {
+      setSummaryError('Please provide a valid student ID');
+      return;
+    }
+    
+    setLoadingSummary(true);
+    setSummaryError('');
+    setStudentSummary('');
+    
+    try {
+      const summary = await getStudentSummary(studentId);
+      setStudentSummary(summary);
+    } catch (err) {
+      setSummaryError('Error generating summary');
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
+
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold text-center mb-6">Student Management</h1>
+    <div className="max-w-4xl mx-auto p-8 font-nunito">
+      <h1 className="text-4xl font-bold text-center mb-8">Student Management</h1>
 
       {/* Message Display */}
-      {message && <div className="bg-green-200 p-2 my-4">{message}</div>}
-      {error && <div className="bg-red-200 p-2 my-4">{error}</div>}
+      {message && <div className="bg-green-200 p-4 rounded-md mb-6">{message}</div>}
+      {error && <div className="bg-red-200 p-4 rounded-md mb-6">{error}</div>}
 
-      {/* Buttons for Actions */}
-      <div className="space-x-4 mb-6">
-        <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={handleGetStudents}>
+      {/* Button Section */}
+      <div className="flex justify-center gap-6 mb-8">
+        <button 
+          className="bg-blue-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          onClick={handleGetStudents}
+        >
           Get All Students
         </button>
-      </div>
-
-   {/* Display All Students */}
-{Array.isArray(students) && students.length > 0 && (
-  <div className="my-4">
-    <h2 className="text-2xl mb-2">Student List</h2>
-    {students.map(student => (
-      <div key={student.id} className="bg-gray-100 p-2 rounded mb-2 flex justify-between">
-        <div>
-          <p>Name: {student.name}</p>
-          <p>Age: {student.age}</p>
-          <p>Email: {student.email}</p>
-        </div>
         <button
-          className="bg-red-500 text-white px-4 py-1 rounded"
-          onClick={() => handleDeleteStudent(student.id)}
+          className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+          onClick={handleCreateStudent}
         >
-          Delete
+          Create New Student
+        </button>
+        <button
+          className="bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+          onClick={handleGetStudentById}
+        >
+          Get Student by ID
+        </button>
+        <button
+          className="bg-purple-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-400"
+          onClick={handleGetSummary}
+        >
+          Generate Student Summary
         </button>
       </div>
-    ))}
-  </div>
-)}
 
-      {/* Form to Create a New Student */}
-      <form className="space-y-4" onSubmit={handleCreateStudent}>
-        <h2 className="text-2xl">Add New Student</h2>
-        <input
-          type="text"
-          placeholder="Name"
-          value={newStudent.Name}
-          onChange={(e) => setNewStudent({ ...newStudent, Name: e.target.value })}
-          className="border border-gray-300 p-2 rounded w-full"
-          required
-        />
-        <input
-          type="number"
-          placeholder="Age"
-          value={newStudent.Age}
-          onChange={(e) => setNewStudent({ ...newStudent, Age: e.target.value })}
-          className="border border-gray-300 p-2 rounded w-full"
-          required
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          value={newStudent.Email}
-          onChange={(e) => setNewStudent({ ...newStudent, Email: e.target.value })}
-          className="border border-gray-300 p-2 rounded w-full"
-          required
-        />
-        <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded">
-          Add Student
-        </button>
-      </form>
+      {/* Display All Students */}
+      <div className="my-8">
+        <h2 className="text-2xl font-semibold">Student List</h2>
+        <div className="mt-4 space-y-4">
+          {students.length > 0 ? (
+            students.map(student => (
+              <div key={student.id} className="flex justify-between items-center p-4 bg-gray-100 rounded-lg shadow-sm">
+                <div>
+                  <p className="font-semibold">{student.name}</p>
+                  <p className="text-gray-600">Age: {student.age}</p>
+                  <p className="text-gray-600">Email: {student.email}</p>
+                </div>
+                <button 
+                  className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+                  onClick={() => handleDeleteStudent(student.id)}
+                >
+                  Delete
+                </button>
+              </div>
+            ))
+          ) : (
+            <p>No students found.</p>
+          )}
+        </div>
+      </div>
 
       {/* Form to Get a Student by ID */}
-      <div className="my-4">
-        <h2 className="text-2xl">Get Student by ID</h2>
+      <div className="my-8">
+        <h2 className="text-xl font-semibold">Get Student by ID</h2>
         <input
           type="number"
           placeholder="Student ID"
           value={studentId}
           onChange={(e) => setStudentId(e.target.value)}
-          className="border border-gray-300 p-2 rounded w-full"
+          className="border border-gray-300 p-3 rounded-lg w-full"
           required
         />
-        <button onClick={handleGetStudentById} className="bg-blue-500 text-white px-4 py-2 rounded mt-2">
+        <button 
+          className="bg-blue-500 text-white px-6 py-3 rounded-lg w-full mt-4"
+          onClick={handleGetStudentById}
+        >
           Get Student
         </button>
         {studentById && (
-          <div className="bg-gray-100 p-2 rounded mt-4">
-            <p>Name: {studentById.name}</p>
-            <p>Age: {studentById.age}</p>
-            <p>Email: {studentById.email}</p>
+          <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+            <p className="font-semibold">{studentById.name}</p>
+            <p className="text-gray-600">Age: {studentById.age}</p>
+            <p className="text-gray-600">Email: {studentById.email}</p>
           </div>
         )}
       </div>
 
-      {/* Form to Update a Student by ID */}
-      <form className="space-y-4" onSubmit={handleUpdateStudent}>
-        <h2 className="text-2xl">Update Student</h2>
+      {/* Form to Generate Student Summary */}
+      <div className="my-8">
+        <h2 className="text-xl font-semibold">Generate Student Summary</h2>
         <input
           type="number"
           placeholder="Student ID"
           value={studentId}
           onChange={(e) => setStudentId(e.target.value)}
-          className="border border-gray-300 p-2 rounded w-full"
+          className="border border-gray-300 p-3 rounded-lg w-full"
           required
         />
-        <input
-          type="text"
-          placeholder="New Name"
-          value={updateStudentData.Name}
-          onChange={(e) => setUpdateStudentData({ ...updateStudentData, Name: e.target.value })}
-          className="border border-gray-300 p-2 rounded w-full"
-          required
-        />
-        <input
-          type="number"
-          placeholder="New Age"
-          value={updateStudentData.Age}
-          onChange={(e) => setUpdateStudentData({ ...updateStudentData, Age: e.target.value })}
-          className="border border-gray-300 p-2 rounded w-full"
-          required
-        />
-        <input
-          type="email"
-          placeholder="New Email"
-          value={updateStudentData.Email}
-          onChange={(e) => setUpdateStudentData({ ...updateStudentData, Email: e.target.value })}
-          className="border border-gray-300 p-2 rounded w-full"
-          required
-        />
-        <button type="submit" className="bg-yellow-500 text-white px-4 py-2 rounded">
-          Update Student
+        <button
+          className="bg-blue-500 text-white px-6 py-3 rounded-lg w-full mt-4"
+          onClick={handleGetSummary}
+          disabled={loadingSummary}
+        >
+          {loadingSummary ? 'Generating...' : 'Generate Summary'}
         </button>
-      </form>
+        {summaryError && <div className="bg-red-200 p-4 rounded-md mt-4">{summaryError}</div>}
+        {studentSummary && !loadingSummary && (
+          <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+            <h3 className="text-lg font-semibold">Summary:</h3>
+            <p>{studentSummary}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Form to Update a Student */}
+      <div className="my-8">
+        <h2 className="text-xl font-semibold">Update Student</h2>
+        <form className="space-y-4" onSubmit={handleUpdateStudent}>
+          <input
+            type="number"
+            placeholder="Student ID"
+            value={studentId}
+            onChange={(e) => setStudentId(e.target.value)}
+            className="border border-gray-300 p-3 rounded-lg w-full"
+            required
+          />
+          <input
+            type="text"
+            placeholder="New Name"
+            value={updateStudentData.Name}
+            onChange={(e) => setUpdateStudentData({ ...updateStudentData, Name: e.target.value })}
+            className="border border-gray-300 p-3 rounded-lg w-full"
+            required
+          />
+          <input
+            type="number"
+            placeholder="New Age"
+            value={updateStudentData.Age}
+            onChange={(e) => setUpdateStudentData({ ...updateStudentData, Age: e.target.value })}
+            className="border border-gray-300 p-3 rounded-lg w-full"
+            required
+          />
+          <input
+            type="email"
+            placeholder="New Email"
+            value={updateStudentData.Email}
+            onChange={(e) => setUpdateStudentData({ ...updateStudentData, Email: e.target.value })}
+            className="border border-gray-300 p-3 rounded-lg w-full"
+            required
+          />
+          <button type="submit" className="bg-yellow-500 text-white py-3 px-6 rounded-lg w-full">
+            Update Student
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

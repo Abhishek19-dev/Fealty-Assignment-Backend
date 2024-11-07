@@ -73,3 +73,14 @@ export async function deleteStudent(id) {
     throw new Error(`Failed to delete student with ID: ${id}`);
   }
 }
+
+//genrate summary
+export async function getStudentSummary(id) {
+  console.log("I am teher")
+  const response = await fetch(`${API_URL}/students/${id}/summary`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch student summary');
+  }
+  const data = await response.json();
+  return data.summary;  // This is the AI-generated summary
+}

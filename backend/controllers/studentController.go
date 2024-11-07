@@ -1,8 +1,10 @@
 package controllers
 
 import (
+    "bytes"
 	"encoding/json"
 	"fmt"
+    "io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -127,3 +129,87 @@ func DeleteStudent(w http.ResponseWriter, r *http.Request) {
 	delete(students, id)
 	w.WriteHeader(http.StatusNoContent)
 }
+
+
+
+// Function to call Ollama API and get summary of a student profile
+func GenerateSummary(w http.ResponseWriter, r *http.Request) {
+	// Extract student ID from the URL
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		http.Error(w, "Invalid student ID", http.StatusBadRequest)
+		fmt.Println("Invalid ID:", params["id"])
+		return
+	}
+
+	// Fetch the student details from the students map
+	student, exists := students[id]
+	if !exists {
+		http.Error(w, "Student not found", http.StatusNotFound)
+		return
+	}
+
+	// Construct the prompt for Ollama to generate a summary
+	prompt := fmt.Sprintf("Generate a brief professional summary for this student:\nName: %s\nAge: %d\nEmail: %s", student.Name, student.Age, student.Email)
+
+	// Call Ollama API to generate the summary
+	summary, err := callOllamaAPI(prompt)
+	if err != nil {
+		http.Error(w, "Failed to generate summary", http.StatusInternalServerError)
+		fmt.Println("Ollama API error:", err)
+		return
+	}
+
+	// Return the summary to the client
+	json.NewEncoder(w).Encode(map[string]string{"summary": summary})
+}
+
+// Function to interact with Ollama API
+func callOllamaAPI(prompt string) (string, error) {
+	ollamaAPIURL := "http://localhost:11434/api/generate"
+
+	requestPayload := map[string]interface{}{
+		"model": "llama3.2",
+		"prompt": prompt,
+		"stream": false,
+	}
+
+	jsonPayload, err := json.Marshal(requestPayload)
+	if err != nil {
+		return "", fmt.Errorf("error marshaling JSON: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", ollamaAPIURL, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return "", fmt.Errorf("error creating request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("error making request to Ollama API: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("error reading response body: %v", err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(body, &response); err != nil {
+		return "", fmt.Errorf("error unmarshaling response: %v", err)
+	}
+
+	// Assuming Ollama API returns a field named "response" that contains the summary
+	summary, exists := response["response"].(string)
+	if !exists {
+		return "", fmt.Errorf("summary not found in response")
+	}
+
+	return summary, nil
+}
+
