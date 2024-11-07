@@ -4,10 +4,10 @@ import { createStudent, deleteStudent, getAllStudents, getStudentById, updateStu
 
 function App() {
   const [students, setStudents] = useState([]);
-  const [newStudent, setNewStudent] = useState({ name: '', age: '', email: '' });
+  const [newStudent, setNewStudent] = useState({ Name: '', Age: '', Email: '' });
   const [studentId, setStudentId] = useState('');
   const [studentById, setStudentById] = useState(null);
-  const [updateStudentData, setUpdateStudentData] = useState({ name: '', age: '', email: '' });
+  const [updateStudentData, setUpdateStudentData] = useState({ Name: '', Age: '', Email: '' });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -27,10 +27,11 @@ function App() {
   const handleCreateStudent = async (e) => {
     e.preventDefault();
     try {
+      console.log("new student",newStudent)
       await createStudent(newStudent);
       setMessage('Student created successfully!');
       setError('');
-      setNewStudent({ name: '', age: '', email: '' });
+      setNewStudent({ Name: '', Age: '', Email: '' });
       handleGetStudents();  // Refresh the list
     } catch (err) {
       setError('Error creating student.');
@@ -57,7 +58,7 @@ function App() {
       await updateStudent(studentId, updateStudentData);
       setMessage(`Student with ID ${studentId} updated successfully!`);
       setError('');
-      setUpdateStudentData({ name: '', age: '', email: '' });
+      setUpdateStudentData({ Name: '', Age: '', Email: '' });
       handleGetStudents();  // Refresh the list
     } catch (err) {
       setError(`Error updating student with ID ${studentId}.`);
@@ -92,27 +93,27 @@ function App() {
         </button>
       </div>
 
-      {/* Display All Students */}
-      {students.length > 0 && (
-        <div className="my-4">
-          <h2 className="text-2xl mb-2">Student List</h2>
-          {students.map(student => (
-            <div key={student.id} className="bg-gray-100 p-2 rounded mb-2 flex justify-between">
-              <div>
-                <p>Name: {student.name}</p>
-                <p>Age: {student.age}</p>
-                <p>Email: {student.email}</p>
-              </div>
-              <button
-                className="bg-red-500 text-white px-4 py-1 rounded"
-                onClick={() => handleDeleteStudent(student.id)}
-              >
-                Delete
-              </button>
-            </div>
-          ))}
+   {/* Display All Students */}
+{Array.isArray(students) && students.length > 0 && (
+  <div className="my-4">
+    <h2 className="text-2xl mb-2">Student List</h2>
+    {students.map(student => (
+      <div key={student.id} className="bg-gray-100 p-2 rounded mb-2 flex justify-between">
+        <div>
+          <p>Name: {student.name}</p>
+          <p>Age: {student.age}</p>
+          <p>Email: {student.email}</p>
         </div>
-      )}
+        <button
+          className="bg-red-500 text-white px-4 py-1 rounded"
+          onClick={() => handleDeleteStudent(student.id)}
+        >
+          Delete
+        </button>
+      </div>
+    ))}
+  </div>
+)}
 
       {/* Form to Create a New Student */}
       <form className="space-y-4" onSubmit={handleCreateStudent}>
@@ -120,24 +121,24 @@ function App() {
         <input
           type="text"
           placeholder="Name"
-          value={newStudent.name}
-          onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
+          value={newStudent.Name}
+          onChange={(e) => setNewStudent({ ...newStudent, Name: e.target.value })}
           className="border border-gray-300 p-2 rounded w-full"
           required
         />
         <input
           type="number"
           placeholder="Age"
-          value={newStudent.age}
-          onChange={(e) => setNewStudent({ ...newStudent, age: e.target.value })}
+          value={newStudent.Age}
+          onChange={(e) => setNewStudent({ ...newStudent, Age: e.target.value })}
           className="border border-gray-300 p-2 rounded w-full"
           required
         />
         <input
           type="email"
           placeholder="Email"
-          value={newStudent.email}
-          onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
+          value={newStudent.Email}
+          onChange={(e) => setNewStudent({ ...newStudent, Email: e.target.value })}
           className="border border-gray-300 p-2 rounded w-full"
           required
         />
@@ -183,24 +184,24 @@ function App() {
         <input
           type="text"
           placeholder="New Name"
-          value={updateStudentData.name}
-          onChange={(e) => setUpdateStudentData({ ...updateStudentData, name: e.target.value })}
+          value={updateStudentData.Name}
+          onChange={(e) => setUpdateStudentData({ ...updateStudentData, Name: e.target.value })}
           className="border border-gray-300 p-2 rounded w-full"
           required
         />
         <input
           type="number"
           placeholder="New Age"
-          value={updateStudentData.age}
-          onChange={(e) => setUpdateStudentData({ ...updateStudentData, age: e.target.value })}
+          value={updateStudentData.Age}
+          onChange={(e) => setUpdateStudentData({ ...updateStudentData, Age: e.target.value })}
           className="border border-gray-300 p-2 rounded w-full"
           required
         />
         <input
           type="email"
           placeholder="New Email"
-          value={updateStudentData.email}
-          onChange={(e) => setUpdateStudentData({ ...updateStudentData, email: e.target.value })}
+          value={updateStudentData.Email}
+          onChange={(e) => setUpdateStudentData({ ...updateStudentData, Email: e.target.value })}
           className="border border-gray-300 p-2 rounded w-full"
           required
         />

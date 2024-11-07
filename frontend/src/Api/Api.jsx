@@ -2,11 +2,16 @@ const API_URL = 'http://localhost:8080';
 
 // Get all students
 export async function getAllStudents() {
-  const response = await fetch(`${API_URL}/students`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch students');
+  try {
+    const response = await fetch(`${API_URL}/students`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch students');
+    }
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching students:', error);
+    return []; // Return an empty array in case of an error
   }
-  return response.json();
 }
 
 // Get a single student by ID
@@ -20,11 +25,20 @@ export async function getStudentById(id) {
 
 // Create a new student
 export async function createStudent(data) {
+  console.log("data is : " , data);
+  
+  // Ensure Age is a number, not a string
+  const formattedData = {
+    ...data,
+    Age: parseInt(data.Age, 10),  // Convert Age to an integer if it's a string
+  };
+  
   const response = await fetch(`${API_URL}/students`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+    body: JSON.stringify(formattedData),  // Send the formatted data
   });
+  
   if (!response.ok) {
     throw new Error('Failed to create student');
   }
@@ -33,16 +47,24 @@ export async function createStudent(data) {
 
 // Update an existing student by ID
 export async function updateStudent(id, data) {
+  const formattedData = {
+    ...data,
+    Age: parseInt(data.Age, 10),  // Convert Age to an integer if it's a string
+  };
+
   const response = await fetch(`${API_URL}/students/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+    body: JSON.stringify(formattedData),
   });
+
   if (!response.ok) {
     throw new Error(`Failed to update student with ID: ${id}`);
   }
+
   return response.json();
 }
+
 
 // Delete a student by ID
 export async function deleteStudent(id) {
