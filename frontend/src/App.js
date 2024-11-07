@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createStudent, deleteStudent, getAllStudents, getStudentById, getStudentSummary, updateStudent } from './Api/Api';
 
 function App() {
@@ -15,11 +15,14 @@ function App() {
   const [view, setView] = useState(''); // Track which view is currently active
 
   const [createdStudent, setCreatedStudent] = useState(null);
+  const [updatedStudent, setUpdatedStudent] = useState(null);
+  const [getStudentById, setGetStudentById] = useState(null);
 
 
   // Handlers for each API action
   const handleGetStudents = async () => {
     try {
+      setMessage('');
       const data = await getAllStudents();
       setStudents(data);
       setMessage('Students retrieved successfully!');
@@ -35,31 +38,15 @@ function App() {
     e.preventDefault();
     try {
       const createdStudent = await createStudent(newStudent);
-      setCreatedStudent(createdStudent); // Store created student data
+      setCreatedStudent(createdStudent); 
+      setStudents((prevStudents) => [...prevStudents, createdStudent]); // Add to list
       setMessage('Student created successfully!');
       setError('');
       setNewStudent({ Name: '', Age: '', Email: '' });
-      handleGetStudents();
-      setView('createStudent'); // Ensure the view is re-rendered to display createdStudent
+      setView('createStudent');
     } catch (err) {
       setError('Error creating student.');
       setMessage('');
-    }
-  };
-  
-
-
-  const handleGetStudentById = async () => {
-    try {
-      const student = await getStudentById(studentId);
-      setStudentById(student);
-      setMessage(`Student with ID ${studentId} retrieved successfully!`);
-      setError('');
-      setView('studentDetails');
-    } catch (err) {
-      setError(`Error retrieving student with ID ${studentId}.`);
-      setMessage('');
-      setStudentById(null);
     }
   };
 
@@ -67,16 +54,35 @@ function App() {
     e.preventDefault();
     try {
       const updatedStudent = await updateStudent(studentId, updateStudentData);
+      setUpdatedStudent(updatedStudent); // Store the updated student
       setMessage(`Student with ID ${studentId} updated successfully!`);
       setError('');
       setUpdateStudentData({ Name: '', Age: '', Email: '' });
-      handleGetStudents();
-      setView('studentsList');
+      // handleGetStudents(); // Refresh the list of students
+      setView('updateStudent');
     } catch (err) {
       setError(`Error updating student with ID ${studentId}.`);
       setMessage('');
     }
   };
+  
+  
+
+
+  const handleGetStudentById = async () => {
+    try {
+      const student = await getStudentById(studentId);
+      setGetStudentById(student)
+      setMessage(`Student with ID ${studentId} retrieved successfully!`);
+      setError('');
+      setView('getStudentById');
+    } catch (err) {
+      setError(`Error retrieving student with ID ${studentId}.`);
+      setMessage('');
+      setStudentById(null);
+    }
+  };
+
 
   const handleDeleteStudent = async (id) => {
     try {
@@ -202,19 +208,20 @@ function App() {
       )}
 
       {/* Create Student Form View */}
-      {view === 'createStudent' && (
+{view === 'createStudent' && (
   <div className="my-8 p-6 bg-white rounded-lg shadow-md">
     <h2 className="text-xl font-semibold mb-4">Create New Student</h2>
 
     {/* Display newly created student data */}
     {createdStudent && (
-      <div className="bg-green-100 p-4 rounded-md mb-6">
-        <p className="font-semibold text-green-800">Student Added Successfully:</p>
-        <p>Name: {createdStudent.name}</p>
-        <p>Age: {createdStudent.age}</p>
-        <p>Email: {createdStudent.email}</p>
-      </div>
-    )}
+  <div className="bg-green-100 p-4 rounded-md mb-6">
+    <p className="font-semibold text-green-800">Student Added Successfully:</p>
+    <p>Name: {createdStudent.name}</p>
+    <p>Age: {createdStudent.age}</p>
+    <p>Email: {createdStudent.email}</p>
+  </div>
+)}
+
 
     <form className="space-y-4" onSubmit={handleCreateStudent}>
       <input
@@ -256,6 +263,15 @@ function App() {
       {view === 'updateStudent' && (
         <div className="my-8 p-6 bg-white rounded-lg shadow-md">
           <h2 className="text-xl font-semibold mb-4">Update Student</h2>
+
+          {updatedStudent && (
+  <div className="bg-green-100 p-4 rounded-md mb-6">
+    <p className="font-semibold text-green-800">Student Updated Successfully:</p>
+    <p>Name: {updatedStudent.name}</p>
+    <p>Age: {updatedStudent.age}</p>
+    <p>Email: {updatedStudent.email}</p>
+  </div>
+)}
           <form className="space-y-4" onSubmit={handleUpdateStudent}>
           <input
             type="text"
@@ -345,6 +361,35 @@ function App() {
             <div className="mt-6 p-4 bg-gray-100 rounded-lg">
               <p className="text-lg font-semibold">Summary:</p>
               <p>{studentSummary}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+
+       {/* Delete Student View */}
+       {view === 'deleteStudent' && (
+        <div className="my-8 p-6 bg-white rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold mb-4">Delete Student</h2>
+          <input
+            type="text"
+            placeholder="Student ID"
+            value={studentId}
+            onChange={(e) => setStudentId(e.target.value)}
+            className="border border-gray-300 p-3 rounded-lg w-full"
+          />
+          <button
+            onClick={handleDeleteStudent(studentId)}
+            className="bg-purple-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-purple-600 mt-4"
+          >
+            Delete Student
+          </button>
+          {studentById && (
+            <div className="mt-6 p-4 bg-gray-100 rounded-lg">
+              <p className="text-lg font-semibold">Student Details:</p>
+              <p>Name: {studentById.name}</p>
+              <p>Age: {studentById.age}</p>
+              <p>Email: {studentById.email}</p>
             </div>
           )}
         </div>
