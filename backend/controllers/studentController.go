@@ -17,56 +17,124 @@ var currentID = 0
 
 // Create a new student
 func CreateStudent(w http.ResponseWriter, r *http.Request) {
-	var student models.Student
-	err := json.NewDecoder(r.Body).Decode(&student)
+	var studentData map[string]interface{}
+	err := json.NewDecoder(r.Body).Decode(&studentData)
 	if err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		fmt.Println("Decoding error:", err)
 		return
 	}
 
-	
-	// Validation for required fields
-	if student.Name == "" || student.Email == "" || student.Age <= 0 {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
-		fmt.Println("Validation error:", student)
+	// Check if the required fields exist
+	name, ok := studentData["Name"].(string)
+	if !ok || name == "" {
+		http.Error(w, "Missing or invalid Name", http.StatusBadRequest)
 		return
 	}
 
-	// Increment the ID and save the student
+	email, ok := studentData["Email"].(string)
+	if !ok || email == "" {
+		http.Error(w, "Missing or invalid Email", http.StatusBadRequest)
+		return
+	}
+
+	// Handle Age which might be a string or integer
+	var age int
+	ageField, ok := studentData["Age"]
+	if !ok || ageField == "" {
+		http.Error(w, "Missing or invalid Age", http.StatusBadRequest)
+		return
+	}
+
+	// Check if Age is a string and try converting it to an integer
+	switch v := ageField.(type) {
+	case string:
+		convertedAge, err := strconv.Atoi(v)
+		if err != nil {
+			http.Error(w, "Invalid Age format", http.StatusBadRequest)
+			fmt.Println("Error converting Age:", err)
+			return
+		}
+		age = convertedAge
+	case float64: // JSON parses numbers as float64
+		age = int(v)
+	default:
+		http.Error(w, "Invalid Age type", http.StatusBadRequest)
+		return
+	}
+
+	// Create the student object
 	currentID++
-	student.ID = currentID
+	student := models.Student{
+		ID:    currentID,
+		Name:  name,
+		Email: email,
+		Age:   age,
+	}
+
+	// Store the student
 	students[student.ID] = student
 
 	// Send the created student as a response
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(student)
 	fmt.Println("Created student:", student)
 }
 
 // Get all students
 func GetStudents(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("app is here")
-	var allStudents []models.Student
-	for _, student := range students {
-		allStudents = append(allStudents, student)
-	}
+    fmt.Println("app is here")
 
-	json.NewEncoder(w).Encode(allStudents)
+    var allStudents []models.Student
+
+    // Iterate over all students and append them to the allStudents slice
+    for _, student := range students {
+        allStudents = append(allStudents, student)
+    }
+
+    // Format the response JSON with indentation
+    jsonResponse, err := json.MarshalIndent(allStudents, "", "    ")
+    if err != nil {
+        http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+        return
+    }
+
+    // Send the formatted JSON response
+    w.Header().Set("Content-Type", "application/json")
+    w.Write(jsonResponse)
 }
 
 // Get a student by ID
 func GetStudent(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	id, _ := strconv.Atoi(params["id"])
+    params := mux.Vars(r)
 
-	student, exists := students[id]
-	if !exists {
-		http.Error(w, "Student not found", http.StatusNotFound)
-		return
-	}
+    // Convert the student ID from the URL parameter to an integer
+    id, err := strconv.Atoi(params["id"])
+    if err != nil {
+        http.Error(w, "Invalid student ID", http.StatusBadRequest)
+        return
+    }
 
-	json.NewEncoder(w).Encode(student)
+    // Find the student by ID
+    student, exists := students[id]
+    if !exists {
+        http.Error(w, "Student not found", http.StatusNotFound)
+        return
+    }
+
+    // Format the response JSON with indentation
+    jsonResponse, err := json.MarshalIndent(student, "", "    ")
+    if err != nil {
+        http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+        return
+    }
+
+    // Send the formatted JSON response
+    w.Header().Set("Content-Type", "application/json")
+    w.Write(jsonResponse)
 }
+
+
 
 // Update a student by ID
 func UpdateStudent(w http.ResponseWriter, r *http.Request) {
@@ -80,18 +148,39 @@ func UpdateStudent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Decode the updated student data from the request body
-	var updatedStudent models.Student
-	err = json.NewDecoder(r.Body).Decode(&updatedStudent)
+	var updatedStudentData map[string]interface{}
+	err = json.NewDecoder(r.Body).Decode(&updatedStudentData)
 	if err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		fmt.Println("Decoding error:", err)
 		return
 	}
 
-	// Validate that the required fields are present
-	if updatedStudent.Name == "" || updatedStudent.Email == "" || updatedStudent.Age <= 0 {
+	// Validate and parse the fields
+	name, nameExists := updatedStudentData["Name"].(string)
+	email, emailExists := updatedStudentData["Email"].(string)
+
+	// Age validation: check if it's a string or number and convert accordingly
+	var age int
+	if ageVal, ok := updatedStudentData["Age"].(float64); ok {
+		age = int(ageVal)
+	} else if ageStr, ok := updatedStudentData["Age"].(string); ok {
+		age, err = strconv.Atoi(ageStr)
+		if err != nil {
+			http.Error(w, "Age must be a valid number", http.StatusBadRequest)
+			fmt.Println("Age conversion error:", ageStr)
+			return
+		}
+	} else {
+		http.Error(w, "Invalid Age input", http.StatusBadRequest)
+		fmt.Println("Invalid Age:", updatedStudentData["Age"])
+		return
+	}
+
+	// Ensure all required fields are present
+	if !nameExists || !emailExists || age <= 0 {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
-		fmt.Println("Validation error:", updatedStudent)
+		fmt.Println("Validation error:", updatedStudentData)
 		return
 	}
 
@@ -103,32 +192,63 @@ func UpdateStudent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update the student data
-	student.Name = updatedStudent.Name
-	student.Age = updatedStudent.Age
-	student.Email = updatedStudent.Email
+	student.Name = name
+	student.Age = age
+	student.Email = email
 	students[id] = student
 
-	// Send the updated student as a response
-	json.NewEncoder(w).Encode(student)
+	// Format the updated student JSON response with indentation
+	jsonResponse, err := json.MarshalIndent(student, "", "    ")
+	if err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+
+	// Set the content type and send the formatted JSON response
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonResponse)
 	fmt.Println("Updated student:", student)
 }
 
 
 
 // Delete a student by ID
+// Delete a student by ID
 func DeleteStudent(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	id, _ := strconv.Atoi(params["id"])
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		http.Error(w, "Invalid student ID", http.StatusBadRequest)
+		fmt.Println("Invalid ID:", params["id"])
+		return
+	}
 
-	_, exists := students[id]
+	// Check if the student exists
+	student, exists := students[id]
 	if !exists {
 		http.Error(w, "Student not found", http.StatusNotFound)
 		return
 	}
 
+	// Delete the student from the map
 	delete(students, id)
-	w.WriteHeader(http.StatusNoContent)
+
+	// Set header to application/json and encode deleted student details
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	// Format the JSON response with indentation
+	formattedResponse, err := json.MarshalIndent(student, "", "    ")
+	if err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+
+	// Write the formatted response
+	w.Write(formattedResponse)
+	fmt.Println("Deleted student:", student)
 }
+
 
 
 
@@ -161,8 +281,20 @@ func GenerateSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return the summary to the client
-	json.NewEncoder(w).Encode(map[string]string{"summary": summary})
+	// Prepare the JSON response
+	response := map[string]string{"summary": summary}
+
+	// Format the response with indentation
+	formattedResponse, err := json.MarshalIndent(response, "", "    ")
+	if err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+
+	// Set the content type and send the formatted JSON response
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(formattedResponse)
+	fmt.Println("Generated summary:", summary)
 }
 
 // Function to interact with Ollama API
